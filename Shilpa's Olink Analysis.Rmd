@@ -7,9 +7,101 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
+library(OlinkAnalyze)
+library(tidyverse)
+library(ggplot2)
+library(stringr)
+library(readxl)
+library(xlsx)
+library(ggpubr)
+library(ggsci)
+library(rstatix)
+library(cowplot)
+library(ggprism)
 
+```
 
+``` {R}
+#Loading data
+data <- read_NPX("Shilpa's Co-Culture Olink Unannotated.xlsx")
 
+data$SampleID2 <- data$SampleID
 
+#Splitting the SampleID into conditions and cell origins
+data <- separate(data, 
+  SampleID2, into = c("Condition", "Cell_Origin"), sep = " ", convert = TRUE)
+
+data <- separate(data, 
+  Condition, into = c("Media", "Fat"), sep = "-", convert = TRUE)
+
+data_HO <- data[data$`Cell_Origin` == "HO",]
+data_H <- data[data$`Cell_Origin` == "H",]
+data_L <- data[data$`Cell_Origin` == "L",]
+
+```
+
+```{R Hepatocytes Only}
+
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Media` != "MO"),
+                             variable = 'Media')
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'FC in HFHS compared to LFLS',
+                   olinkid_list = top_10_name)
+
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Media` != "HFHS"),
+                             variable = 'Media')
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'FC in LFLS compared to MO',
+                   olinkid_list = top_10_name)
+
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Media` != "LFLS"),
+                             variable = 'Media')
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'FC in HFHS compared to MO',
+                   olinkid_list = top_10_name)
+
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Fat` != "N"),
+                             variable = 'Fat')
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'FC in POLA compared to OPLA across HFHS and LFLS',
+                   olinkid_list = top_10_name)
+
+anova_results_oneway <- olink_anova(df = data_H, 
+                                    variable = 'Media')
+
+anova_results_oneway_significant <- anova_results_oneway %>%
+  filter(Threshold == 'Significant') %>%
+  pull(OlinkID)
+anova_posthoc_oneway_results <- olink_anova_posthoc(df = data_H,
+                                                    olinkid_list = anova_results_oneway_significant,
+                                                    variable = 'Media',
+                                                    effect = 'Media')
+
+anova_results_twoway <- olink_anova(df = filter(data, data$`Cell_Origin` != "L"), 
+                                    variable = c('Cell_Origin', 'Media'))
 
 ```
