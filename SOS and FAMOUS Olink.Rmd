@@ -1,0 +1,93 @@
+---
+title: "SOS and FAMOUS Olink"
+author: "Felix Westcott"
+date: "2023-04-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+
+library(OlinkAnalyze)
+library(tidyverse)
+library(ggplot2)
+library(stringr)
+library(readxl)
+library(xlsx)
+library(ggpubr)
+library(ggsci)
+library(rstatix)
+library(cowplot)
+library(ggprism)
+library(ordinal)
+
+
+```
+
+``` {R}
+#Loading data
+data <- read_NPX("SOS and FAMOUS Olink.xlsx")
+
+data$SampleID2 <- data$SampleID
+
+data <- separate(data, 
+  SampleID2, into = c("Study", "Participant", "Visit"), sep = " ", convert = TRUE)
+
+assays_to_filter <- c("IL-20RA", "IL-2RB", "IL-1-alpha",
+                      "IL2", "TSLP", "IL-22 RA1", "Beta-NGF",
+                      "IL-24", "IL13", "ARTN", "IL-20", "IL33", "IL4",
+                      "LIF", "NRTN", "IL5")
+
+# Filter out the specified assays from the 'Assay' column
+data <- data[!data$Assay %in% assays_to_filter, ]
+
+FAMOUS <- data[data$`Study` == "FAMOUS",]
+SOS <- data[data$`Study` == "SOS",]
+DET <- data[data$`Study` == "DET",]
+
+```
+
+
+```{R, T Tests}
+
+
+# perform t-test
+ttest_results <- olink_ttest(df = SOS,
+                             variable = 'Visit', pair_id = "Participant")
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'FC in SOS Visits A vs B',
+                   olinkid_list = top_10_name)
+
+
+# perform t-test
+ttest_results <- olink_ttest(df = FAMOUS,
+                             variable = 'Visit', pair_id = "Participant")
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'FC in FAMOUS Visits A vs B',
+                   olinkid_list = top_10_name)
+
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data, data$Visit != "B"),
+                             variable = 'Visit')
+
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'FC in Control vs NAFLD',
+                   olinkid_list = top_10_name)
+
+
+```
