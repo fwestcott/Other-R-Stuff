@@ -21,6 +21,7 @@ library(cowplot)
 library(ggprism)
 library(ordinal)
 
+
 ```
 
 ``` {R}
@@ -60,17 +61,20 @@ anova_posthoc_results<-data_HO %>%
                       variable = 'Media',
                       effect = 'Media')
 
-plot_H <- olink_boxplot(data_HO, variable = "SampleID", 
+plot_HO <- olink_boxplot(data_HO, variable = "SampleID", 
                 olinkid_list = anova_results_oneway_significant,
                 number_of_proteins_per_plot  = 4,
                 posthoc_results = anova_posthoc_results)
 
-plot_H
+plot_HO
+
+anova_results_twoway <- olink_anova(df = filter(data_H, data_H$Fat != "N"), 
+                                    variable = c('Media', 'Fat'))
 
 
 ```
 
-```{R Hepatocytes Only}
+```{R, Hepatocytes Only, volcano plots and T-test}
 
 # perform t-test
 ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Media` != "MO"),
@@ -119,5 +123,41 @@ top_10_name <- ttest_results %>%
 olink_volcano_plot(p.val_tbl = ttest_results,
                    x_lab = 'FC in POLA compared to OPLA across HFHS and LFLS',
                    olinkid_list = top_10_name)
+
+```
+
+
+```{R Monocyte vs co-culture}
+
+
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data, data$Cell_Origin != "L"),
+                             variable = 'Cell_Origin')
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'FC in Co-Culture compared to Monoculture',
+                   olinkid_list = top_10_name)
+
+
+anova_results_twoway <- olink_anova(df = filter(data, data$Cell_Origin != "L"), 
+                                    variable = c('Media', 'Cell_Origin'))
+
+anova_results_twoway_significant <- anova_results_twoway %>%
+  filter(Threshold == 'Significant') %>%
+  pull(OlinkID)
+
+plot_H <- olink_boxplot(filter(data, data$Cell_Origin != "L"), variable = "SampleID", 
+                olinkid_list = anova_results_oneway_significant,
+                number_of_proteins_per_plot  = 4,
+                posthoc_results = anova_posthoc_results)
+
+plot_H [[1]]
+
+
+
 
 ```
