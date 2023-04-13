@@ -7,7 +7,6 @@ output: html_document
 
 ```{r setup, include=FALSE}
 
-
 library(OlinkAnalyze)
 library(tidyverse)
 library(ggplot2)
@@ -97,5 +96,7 @@ olink_volcano_plot(p.val_tbl = ttest_results,
                    x_lab = 'Difference in relative protein concentration (NPX) in NAFLD compared to Control participants',
                    olinkid_list = top_10_name)
 ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/NAFLD.png")
+
+NAFLD_Proteins <- pull(filter(ttest_results, ttest_results$Threshold == "Significant"), OlinkID)
 
 ```

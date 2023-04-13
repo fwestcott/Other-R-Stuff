@@ -28,28 +28,52 @@ library(ordinal)
 #Loading data
 data <- read_NPX("Shilpa's Olink Data.xlsx")
 
-data$SampleID2 <- data$SampleID
+#Extract sample Manifest from SampleID
 
 data <- separate(data, 
-  SampleID2, into = c("Condition", "Cell_Origin"), sep = " ", convert = TRUE)
+  SampleID, into = c("Condition", "Cell_Origin"), sep = " ", remove = FALSE, convert = TRUE)
 
 data <- separate(data, 
-  Condition, into = c("Media", "Fat"), sep = "-", convert = TRUE)
+  Condition, into = c("Media", "Fat"), sep = "-", remove = FALSE, convert = TRUE)
+
+data$SampleID <- paste(data$SampleID, data$Index)
+
+#Filter Assays with >50% of samples below LOD
 
 assays_to_filter <- c("CD244", "IL-17C", "IL-20RA", "IL-2RB", "IL-1-alpha", "OSM", "IL2", "CD6", "SLAMF1","TNFSF14", "FGF-23", "IL-10RA", "IL-22 RA1", "Beta-NGF", "IL13", "IL10", "TNF", "CD5", "IL-20", "CCL28", "EN-RAGE", "IL-33", "IFN-gamma", "IL4", "IL5", "TNFB")
 
-# Filter out the specified assays from the 'Assay' column
 data <- data[!data$Assay %in% assays_to_filter, ]
 
+#Load NAFLD Proteins (can also hash instead and get this straight from other R markdown)
+NAFLD_Proteins <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517", "OID00486", "OID00561", "OID00483", "OID00542", "OID00538", "OID00510", "OID00534", "OID00560", "OID00511", "OID00512", "OID00480", "OID00499", "OID00535", "OID00558", "OID00533", "OID00491", "OID00551", "OID00507", "OID00531", "OID00536", "OID00554", "OID00523", "OID00494", "OID00485", "OID00487", "OID00501", "OID00479")
+
+#Unhash if just want to use NAFLD proteins!!
+data <- data[data$OlinkID %in% NAFLD_Proteins, ]
+
+#Split by cell type for future ease
 data_HO <- data[data$`Cell_Origin` == "HO",]
 data_H <- data[data$`Cell_Origin` == "H",]
 data_L <- data[data$`Cell_Origin` == "L",]
 
 ```
 
-```{R, Hepatocytes Only ANOVAs}
+``` {R, PCA Plots <3 <3}
 
-anova_results_oneway <- olink_anova(df = data_H, 
+data %>% 
+  filter(!str_detect(SampleID, 'CONTROL_SAMPLE')) %>% 
+  olink_pca_plot(df = .,
+                 color_g = "Cell_Origin", byPanel = FALSE)
+
+data %>% 
+  filter(!str_detect(SampleID, 'CONTROL_SAMPLE')) %>% 
+  olink_pca_plot(df = .,
+                 color_g = "Media", byPanel = FALSE)
+
+```
+
+```{R, Hepatocytes Only (HO) ANOVAs}
+
+anova_results_oneway <- olink_anova(df = data_HO, 
                                     variable = 'Media')
 
 anova_results_oneway_significant <- anova_results_oneway %>%
@@ -61,14 +85,14 @@ anova_posthoc_results<-data_HO %>%
                       variable = 'Media',
                       effect = 'Media')
 
-plot_HO <- olink_boxplot(data_HO, variable = "SampleID", 
+plot_HO <- olink_boxplot(data_HO, variable = "Condition", 
                 olinkid_list = anova_results_oneway_significant,
                 number_of_proteins_per_plot  = 4,
                 posthoc_results = anova_posthoc_results)
 
 plot_HO
 
-anova_results_twoway <- olink_anova(df = filter(data_H, data_H$Fat != "N"), 
+anova_results_twoway <- olink_anova(df = filter(data_HO, data_HO$Fat != "N"), 
                                     variable = c('Media', 'Fat'))
 
 
@@ -87,6 +111,7 @@ top_10_name <- ttest_results %>%
 olink_volcano_plot(p.val_tbl = ttest_results,
                    x_lab = 'FC in HFHS compared to LFLS',
                    olinkid_list = top_10_name)
+
 
 # perform t-test
 ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Media` != "HFHS"),
@@ -125,6 +150,7 @@ olink_volcano_plot(p.val_tbl = ttest_results,
                    olinkid_list = top_10_name)
 
 ```
+
 
 
 ```{R Monocyte vs co-culture}
