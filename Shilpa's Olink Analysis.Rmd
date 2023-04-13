@@ -30,6 +30,8 @@ data <- read_NPX("Shilpa's Olink Data.xlsx")
 
 #Extract sample Manifest from SampleID
 
+data$Sample_Type <- data$SampleID
+
 data <- separate(data, 
   SampleID, into = c("Condition", "Cell_Origin"), sep = " ", remove = FALSE, convert = TRUE)
 
@@ -105,7 +107,7 @@ ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Media` != "MO"),
                              variable = 'Media')
 # select names of proteins to show
 top_10_name <- ttest_results %>%
-  slice_head(n = 15) %>%
+  slice_head(n = 0) %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
@@ -118,7 +120,7 @@ ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Media` != "HFHS"),
                              variable = 'Media')
 # select names of proteins to show
 top_10_name <- ttest_results %>%
-  slice_head(n = 15) %>%
+  slice_head(n = 0) %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
@@ -130,7 +132,7 @@ ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Media` != "LFLS"),
                              variable = 'Media')
 # select names of proteins to show
 top_10_name <- ttest_results %>%
-  slice_head(n = 15) %>%
+  slice_head(n = 0) %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
@@ -142,7 +144,7 @@ ttest_results <- olink_ttest(df = filter(data_HO, data_HO$`Fat` != "N"),
                              variable = 'Fat')
 # select names of proteins to show
 top_10_name <- ttest_results %>%
-  slice_head(n = 15) %>%
+  slice_head(n = 0) %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
@@ -161,7 +163,7 @@ ttest_results <- olink_ttest(df = filter(data, data$Cell_Origin != "L"),
                              variable = 'Cell_Origin')
 # select names of proteins to show
 top_10_name <- ttest_results %>%
-  slice_head(n = 15) %>%
+  slice_head(n = 0) %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
@@ -169,19 +171,23 @@ olink_volcano_plot(p.val_tbl = ttest_results,
                    olinkid_list = top_10_name)
 
 
-anova_results_twoway <- olink_anova(df = filter(data, data$Cell_Origin != "L"), 
+anova_results_twoway <- olink_anova(df = data, 
                                     variable = c('Media', 'Cell_Origin'))
 
 anova_results_twoway_significant <- anova_results_twoway %>%
   filter(Threshold == 'Significant') %>%
   pull(OlinkID)
 
-plot_H <- olink_boxplot(filter(data, data$Cell_Origin != "L"), variable = "SampleID", 
-                olinkid_list = anova_results_oneway_significant,
-                number_of_proteins_per_plot  = 4,
-                posthoc_results = anova_posthoc_results)
+anova_posthoc_results<-data %>% 
+  olink_anova_posthoc(olinkid_list = anova_results_twoway_significant,
+                      variable = 'Cell_Origin',
+                      effect = 'Cell_Origin')
 
-plot_H [[1]]
+plot_H <- olink_boxplot(data, variable = "Cell_Origin", 
+                olinkid_list = anova_results_oneway_significant,
+                number_of_proteins_per_plot  = 4)
+
+plot_H
 
 
 
