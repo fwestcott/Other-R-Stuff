@@ -20,6 +20,7 @@ library(rstatix)
 library(cowplot)
 library(ggprism)
 library(ordinal)
+library(clusterProfiler)
 
 
 ```
@@ -47,10 +48,10 @@ assays_to_filter <- c("CD244", "IL-17C", "IL-20RA", "IL-2RB", "IL-1-alpha", "OSM
 data <- data[!data$Assay %in% assays_to_filter, ]
 
 #Load NAFLD Proteins (can also hash instead and get this straight from other R markdown)
-NAFLD_Proteins <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517", "OID00486", "OID00561", "OID00483", "OID00542", "OID00538", "OID00510", "OID00534", "OID00560", "OID00511", "OID00512", "OID00480", "OID00499", "OID00535", "OID00558", "OID00533", "OID00491", "OID00551", "OID00507", "OID00531", "OID00536", "OID00554", "OID00523", "OID00494", "OID00485", "OID00487", "OID00501", "OID00479")
+#NAFLD_Proteins <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517", "OID00486", "OID00561", "OID00483", "OID00542", "OID00538", "OID00510", "OID00534", "OID00560", "OID00511", "OID00512", "OID00480", "OID00499", "OID00535", "OID00558", "OID00533", "OID00491", "OID00551", "OID00507", "OID00531", "OID00536", "OID00554", "OID00523", "OID00494", "OID00485", "OID00487", "OID00501", "OID00479")
 
 #Unhash if just want to use NAFLD proteins!!
-data <- data[data$OlinkID %in% NAFLD_Proteins, ]
+#data <- data[data$OlinkID %in% NAFLD_Proteins, ]
 
 #Split by cell type for future ease
 data_HO <- data[data$`Cell_Origin` == "HO",]
@@ -75,10 +76,10 @@ data %>%
 
 ```{R, Hepatocytes Only (HO) ANOVAs}
 
-anova_results_oneway <- olink_anova(df = data_HO, 
+anova_results_oneway_HO <- olink_anova(df = data_HO, 
                                     variable = 'Media')
 
-anova_results_oneway_significant <- anova_results_oneway %>%
+anova_results_oneway_significant <- anova_results_oneway_HO %>%
   filter(Threshold == 'Significant') %>%
   pull(OlinkID)
 
@@ -97,7 +98,6 @@ plot_HO
 anova_results_twoway <- olink_anova(df = filter(data_HO, data_HO$Fat != "N"), 
                                     variable = c('Media', 'Fat'))
 
-
 ```
 
 ```{R, Hepatocytes Only, volcano plots and T-test}
@@ -111,7 +111,7 @@ top_10_name <- ttest_results %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
-                   x_lab = 'FC in HFHS compared to LFLS',
+                   x_lab = 'HFHS compared to LFLS',
                    olinkid_list = top_10_name)
 
 
@@ -124,7 +124,7 @@ top_10_name <- ttest_results %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
-                   x_lab = 'FC in LFLS compared to MO',
+                   x_lab = 'LFLS compared to MO',
                    olinkid_list = top_10_name)
 
 # perform t-test
@@ -136,7 +136,7 @@ top_10_name <- ttest_results %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
-                   x_lab = 'FC in HFHS compared to MO',
+                   x_lab = 'HFHS compared to MO',
                    olinkid_list = top_10_name)
 
 # perform t-test
@@ -148,48 +148,241 @@ top_10_name <- ttest_results %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
-                   x_lab = 'FC in POLA compared to OPLA across HFHS and LFLS',
+                   x_lab = 'POLA compared to OPLA across HFHS and LFLS',
                    olinkid_list = top_10_name)
 
 ```
 
 
+```{R, Hepatocyte co-culture (H) ANOVAs}
 
-```{R Monocyte vs co-culture}
+anova_results_oneway_H <- olink_anova(df = data_H, 
+                                    variable = 'Media')
 
+anova_results_oneway_significant <- anova_results_oneway_H %>%
+  filter(Threshold == 'Significant') %>%
+  pull(OlinkID)
+
+anova_posthoc_results<-data_H %>% 
+  olink_anova_posthoc(olinkid_list = anova_results_oneway_significant,
+                      variable = 'Media',
+                      effect = 'Media')
+
+plot_H <- olink_boxplot(data_H, variable = "Condition", 
+                olinkid_list = anova_results_oneway_significant,
+                number_of_proteins_per_plot  = 4,
+                posthoc_results = anova_posthoc_results)
+
+plot_H
+
+anova_results_twoway <- olink_anova(df = filter(data_H, data_H$Fat != "N"), 
+                                    variable = c('Media', 'Fat'))
+
+
+```
+
+```{R, Hepatocytes co-culture, volcano plots and T-test}
 
 # perform t-test
-ttest_results <- olink_ttest(df = filter(data, data$Cell_Origin != "L"),
-                             variable = 'Cell_Origin')
+ttest_results <- olink_ttest(df = filter(data_H, data_H$`Media` != "MO"),
+                             variable = 'Media')
 # select names of proteins to show
 top_10_name <- ttest_results %>%
   slice_head(n = 0) %>%
   pull(OlinkID)
 # volcano plot
 olink_volcano_plot(p.val_tbl = ttest_results,
-                   x_lab = 'FC in Co-Culture compared to Monoculture',
+                   x_lab = 'HFHS compared to LFLS',
                    olinkid_list = top_10_name)
 
 
-anova_results_twoway <- olink_anova(df = data, 
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data_H, data_H$`Media` != "HFHS"),
+                             variable = 'Media')
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 0) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'LFLS compared to MO',
+                   olinkid_list = top_10_name)
+
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data_H, data_H$`Media` != "LFLS"),
+                             variable = 'Media')
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 0) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'HFHS compared to MO',
+                   olinkid_list = top_10_name)
+
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data_H, data_H$`Fat` != "N"),
+                             variable = 'Fat')
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 0) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'POLA compared to OPLA across HFHS and LFLS',
+                   olinkid_list = top_10_name)
+
+```
+
+```{R, Cell Type T tests}
+
+# T test and volcano plot of H vs HO
+ttest_results <- olink_ttest(df = filter(data, data$Cell_Origin != "L"),
+                             variable = 'Cell_Origin')
+top_10_name <- ttest_results %>%
+  slice_head(n = 0) %>%
+  pull(OlinkID)
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'Hepatocyte in Co-Culture compared to Monoculture',
+                   olinkid_list = top_10_name)
+
+# T test and volcano plot of H vs L
+ttest_results <- olink_ttest(df = filter(data, data$Cell_Origin != "HO"),
+                             variable = 'Cell_Origin')
+top_10_name <- ttest_results %>%
+  slice_head(n = 0) %>%
+  pull(OlinkID)
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'Hepatocyte compared to Endothelial cell in Co-Culture',
+                   olinkid_list = top_10_name)
+
+```
+
+```{R, ANOVAs for global Cell_Origin and Media}
+
+#Two way ANOVA on all data for Media and Cell_Origin
+anova_results_twoway_All <- olink_anova(df = data, 
                                     variable = c('Media', 'Cell_Origin'))
 
-anova_results_twoway_significant <- anova_results_twoway %>%
-  filter(Threshold == 'Significant') %>%
-  pull(OlinkID)
 
-anova_posthoc_results<-data %>% 
+#Plotting significant Cell_Origin results
+anova_results_twoway_significant <- anova_results_twoway_All %>%
+  filter(Threshold == 'Significant') %>%
+  filter(term == "Cell_Origin") %>%
+  pull(OlinkID) %>%
+  unique()
+
+anova_posthoc_results<- data %>% 
   olink_anova_posthoc(olinkid_list = anova_results_twoway_significant,
                       variable = 'Cell_Origin',
                       effect = 'Cell_Origin')
 
-plot_H <- olink_boxplot(data, variable = "Cell_Origin", 
-                olinkid_list = anova_results_oneway_significant,
+plot_All <- olink_boxplot(data, variable = "Cell_Origin", 
+                olinkid_list = anova_results_twoway_significant,
+                number_of_proteins_per_plot  = 4,
+                posthoc_results = anova_posthoc_results)
+
+plot_All
+
+#Plotting significant Media results
+anova_results_twoway_significant <- anova_results_twoway_All %>%
+  filter(Threshold == 'Significant') %>%
+  filter(term == "Media") %>%
+  pull(OlinkID) %>%
+  unique()
+
+anova_posthoc_results<- data %>% 
+  olink_anova_posthoc(olinkid_list = anova_results_twoway_significant,
+                      variable = 'Media',
+                      effect = 'Media')
+
+plot_All <- olink_boxplot(data, variable = "Media", 
+                olinkid_list = anova_results_twoway_significant,
+                number_of_proteins_per_plot  = 4,
+                posthoc_results = anova_posthoc_results)
+
+plot_All
+
+
+```
+
+```{R, Media:Cell_Origin interactions}
+#Two way ANOVA on all H vs HO for Media:Cell_Origin interaction
+anova_results_twoway_HvHO <- olink_anova(df = filter(data, data$Cell_Origin != "L"), 
+                                    variable = c('Media', 'Cell_Origin'))
+
+
+#Plotting significant Media:Cell_Origin results
+anova_results_twoway_significant <- anova_results_twoway_HvHO %>%
+  filter(Threshold == 'Significant') %>%
+  filter(term == "Media:Cell_Origin") %>%
+  pull(OlinkID) %>%
+  unique()
+
+plot_All <- olink_boxplot(filter(data, data$Cell_Origin != "L"), variable = "Sample_Type", 
+                olinkid_list = anova_results_twoway_significant,
                 number_of_proteins_per_plot  = 4)
 
-plot_H
+plot_All
 
 
+#Two way ANOVA on all H vs HO for Media:Cell_Origin interaction
+anova_results_twoway_HvL <- olink_anova(df = filter(data, data$Cell_Origin != "HO"), 
+                                    variable = c('Media', 'Cell_Origin'))
+
+
+#Plotting significant Media:Cell_Origin results
+anova_results_twoway_significant <- anova_results_twoway_HvL %>%
+  filter(Threshold == 'Significant') %>%
+  filter(term == "Media:Cell_Origin") %>%
+  pull(OlinkID) %>%
+  unique()
+
+plot_All <- olink_boxplot(filter(data, data$Cell_Origin != "HO"), variable = "Sample_Type", 
+                olinkid_list = anova_results_twoway_significant,
+                number_of_proteins_per_plot  = 4)
+
+plot_All
+
+```
+
+```{R,OPLA v POLA at all?}
+
+#Two way ANOVA on all data for Media and Cell_Origin
+anova_results_twoway_Fat <- olink_anova(df = filter(data, data$Fat != "N"), 
+                                    variable = c('Fat', 'Cell_Origin'))
+
+
+#Plotting significant Cell_Origin results
+anova_results_twoway_significant <- anova_results_twoway_Fat %>%
+  filter(Threshold == 'Significant') %>%
+  filter(term == "Fat") %>%
+  pull(OlinkID) %>%
+  unique()
+
+anova_posthoc_results<- filter(data, data$Fat != "N") %>% 
+  olink_anova_posthoc(olinkid_list = anova_results_twoway_significant,
+                      variable = 'Fat',
+                      effect = 'Fat')
+
+plot_All <- olink_boxplot(filter(data, data$Fat != "N"), variable = "Fat", 
+                olinkid_list = anova_results_twoway_significant,
+                number_of_proteins_per_plot  = 4,
+                posthoc_results = anova_posthoc_results)
+
+plot_All
+
+# perform t-test
+ttest_results <- olink_ttest(df = filter(data, data$Fat != "N"),
+                             variable = 'Fat')
+# select names of proteins to show
+top_10_name <- ttest_results %>%
+  slice_head(n = 20) %>%
+  pull(OlinkID)
+# volcano plot
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'OPLA compared to POLA across all cell types',
+                   olinkid_list = top_10_name)
 
 
 ```
