@@ -294,7 +294,7 @@ Cell_Origin_Analysis$Coded <-
   if_else(Cell_Origin_Analysis$`HO - L` == "1" & Cell_Origin_Analysis$`H - HO` == "0" & Cell_Origin_Analysis$`H - L` == "1", 2, 
   if_else(Cell_Origin_Analysis$`HO - L` == "-1" & Cell_Origin_Analysis$`H - HO` == "1" & Cell_Origin_Analysis$`H - L` == "0", 3, 
   if_else(Cell_Origin_Analysis$`HO - L` == "-1" & Cell_Origin_Analysis$`H - HO` == "0" & Cell_Origin_Analysis$`H - L` == "-1", 4,
-  if_else(Cell_Origin_Analysis$`HO - L` == "1" & Cell_Origin_Analysis$`H - HO` == "-1" & Cell_Origin_Analysis$`H - L` == "0", 5,0))))
+  if_else(Cell_Origin_Analysis$`HO - L` == "1" & Cell_Origin_Analysis$`H - HO` == "-1" & Cell_Origin_Analysis$`H - L` == "0", 5,0)))))
 
 # 1 = HO > H > L, 2 = Hepatocytes both higher than endothelial cells, 3 = Co-culture higher than monoculture, 4 =  Hepatocytes both lower than endothelial cells, 5 = monoculture higher than co-culture 
 
