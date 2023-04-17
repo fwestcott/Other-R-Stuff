@@ -47,10 +47,14 @@ assays_to_filter <- c("CD244", "IL-17C", "IL-20RA", "IL-2RB", "IL-1-alpha", "OSM
 data <- data[!data$Assay %in% assays_to_filter, ]
 
 #Load NAFLD Proteins (can also hash instead and get this straight from other R markdown)
-#NAFLD_Proteins <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517", "OID00486", "OID00561", "OID00483", "OID00542", "OID00538", "OID00510", "OID00534", "OID00560", "OID00511", "OID00512", "OID00480", "OID00499", "OID00535", "OID00558", "OID00533", "OID00491", "OID00551", "OID00507", "OID00531", "OID00536", "OID00554", "OID00523", "OID00494", "OID00485", "OID00487", "OID00501", "OID00479")
+#All significant NAFLD proteins 
+NAFLD_Proteins_All <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517", "OID00486", "OID00561", "OID00483", "OID00542", "OID00538", "OID00510", "OID00534", "OID00560", "OID00511", "OID00512", "OID00480", "OID00499", "OID00535", "OID00558", "OID00533", "OID00491", "OID00551", "OID00507", "OID00531", "OID00536", "OID00554", "OID00523", "OID00494", "OID00485", "OID00487", "OID00501", "OID00479")
+
+#NAFLD proteins where p < 0.01
+NAFLD_Proteins_Top <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517")
 
 #Unhash if just want to use NAFLD proteins!!
-#data <- data[data$OlinkID %in% NAFLD_Proteins, ]
+data <- data[data$OlinkID %in% NAFLD_Proteins_Top, ]
 
 #Split by cell type for future ease
 data_HO <- data[data$`Cell_Origin` == "HO",]
@@ -233,7 +237,47 @@ olink_volcano_plot(p.val_tbl = ttest_results,
 
 ```
 
-```{R, Cell Type T tests}
+
+```{R, Cell_Origin global analysis}
+
+#Two way ANOVA on all data for Media and Cell_Origin
+anova_results_twoway_All <- olink_anova(df = data, 
+                                    variable = c('Media', 'Cell_Origin'))
+
+
+#Plotting significant Cell_Origin results
+anova_results_twoway_significant <- anova_results_twoway_All %>%
+  filter(Threshold == 'Significant') %>%
+  filter(term == "Cell_Origin") %>%
+  pull(OlinkID) %>%
+  unique()
+
+anova_posthoc_results<- data %>% 
+  olink_anova_posthoc(olinkid_list = anova_results_twoway_significant,
+                      variable = 'Cell_Origin',
+                      effect = 'Cell_Origin')
+
+plot_All <- olink_boxplot(data, variable = "Cell_Origin", 
+                olinkid_list = anova_results_twoway_significant,
+                number_of_proteins_per_plot  = 5,
+                posthoc_results = anova_posthoc_results)
+
+plot_All
+
+anova_posthoc_results$Coded <- if_else(anova_posthoc_results$estimate > 0 & anova_posthoc_results$Threshold == "Significant", 1, 
+                               if_else(anova_posthoc_results$estimate < 0 & anova_posthoc_results$Threshold == "Significant", -1,0))
+
+Cell_Origin_Analysis <- anova_posthoc_results[,c("Assay", "contrast", "Coded")]
+Cell_Origin_Analysis <- pivot_wider(Cell_Origin_Analysis, names_from = "contrast", values_from = "Coded")
+
+Cell_Origin_Analysis$Coded <- 
+  if_else(Cell_Origin_Analysis$`HO - L` == "1" & Cell_Origin_Analysis$`H - HO` == "-1" & Cell_Origin_Analysis$`H - L` == "1", 1, 
+  if_else(Cell_Origin_Analysis$`HO - L` == "1" & Cell_Origin_Analysis$`H - HO` == "0" & Cell_Origin_Analysis$`H - L` == "1", 2, 
+  if_else(Cell_Origin_Analysis$`HO - L` == "-1" & Cell_Origin_Analysis$`H - HO` == "1" & Cell_Origin_Analysis$`H - L` == "0", 3, 
+  if_else(Cell_Origin_Analysis$`HO - L` == "-1" & Cell_Origin_Analysis$`H - HO` == "0" & Cell_Origin_Analysis$`H - L` == "-1", 4,
+  if_else(Cell_Origin_Analysis$`HO - L` == "1" & Cell_Origin_Analysis$`H - HO` == "-1" & Cell_Origin_Analysis$`H - L` == "0", 5,0)))))
+
+# 1 = HO > H > L, 2 = Hepatocytes both higher than endothelial cells, 3 = Co-culture higher than monoculture, 4 =  Hepatocytes both lower than endothelial cells, 5 = monoculture higher than co-culture 
 
 # T test and volcano plot of H vs HO
 ttest_results <- olink_ttest(df = filter(data, data$Cell_Origin != "L"),
@@ -257,46 +301,7 @@ olink_volcano_plot(p.val_tbl = ttest_results,
 
 ```
 
-```{R, ANOVAs for global Cell_Origin and Media}
-
-#Two way ANOVA on all data for Media and Cell_Origin
-anova_results_twoway_All <- olink_anova(df = data, 
-                                    variable = c('Media', 'Cell_Origin'))
-
-
-#Plotting significant Cell_Origin results
-anova_results_twoway_significant <- anova_results_twoway_All %>%
-  filter(Threshold == 'Significant') %>%
-  filter(term == "Cell_Origin") %>%
-  pull(OlinkID) %>%
-  unique()
-
-anova_posthoc_results<- data %>% 
-  olink_anova_posthoc(olinkid_list = anova_results_twoway_significant,
-                      variable = 'Cell_Origin',
-                      effect = 'Cell_Origin')
-
-plot_All <- olink_boxplot(data, variable = "Cell_Origin", 
-                olinkid_list = anova_results_twoway_significant,
-                number_of_proteins_per_plot  = 4,
-                posthoc_results = anova_posthoc_results)
-
-plot_All
-
-anova_posthoc_results$Coded <- if_else(anova_posthoc_results$estimate > 0 & anova_posthoc_results$Threshold == "Significant", 1, 
-                               if_else(anova_posthoc_results$estimate < 0 & anova_posthoc_results$Threshold == "Significant", -1,0))
-
-Cell_Origin_Analysis <- anova_posthoc_results[,c("Assay", "contrast", "Coded")]
-Cell_Origin_Analysis <- pivot_wider(Cell_Origin_Analysis, names_from = "contrast", values_from = "Coded")
-
-Cell_Origin_Analysis$Coded <- 
-  if_else(Cell_Origin_Analysis$`HO - L` == "1" & Cell_Origin_Analysis$`H - HO` == "-1" & Cell_Origin_Analysis$`H - L` == "1", 1, 
-  if_else(Cell_Origin_Analysis$`HO - L` == "1" & Cell_Origin_Analysis$`H - HO` == "0" & Cell_Origin_Analysis$`H - L` == "1", 2, 
-  if_else(Cell_Origin_Analysis$`HO - L` == "-1" & Cell_Origin_Analysis$`H - HO` == "1" & Cell_Origin_Analysis$`H - L` == "0", 3, 
-  if_else(Cell_Origin_Analysis$`HO - L` == "-1" & Cell_Origin_Analysis$`H - HO` == "0" & Cell_Origin_Analysis$`H - L` == "-1", 4,
-  if_else(Cell_Origin_Analysis$`HO - L` == "1" & Cell_Origin_Analysis$`H - HO` == "-1" & Cell_Origin_Analysis$`H - L` == "0", 5,0)))))
-
-# 1 = HO > H > L, 2 = Hepatocytes both higher than endothelial cells, 3 = Co-culture higher than monoculture, 4 =  Hepatocytes both lower than endothelial cells, 5 = monoculture higher than co-culture 
+```{R Media global analysis}
 
 #Plotting significant Media results
 anova_results_twoway_significant <- anova_results_twoway_All %>%
@@ -316,6 +321,32 @@ plot_All <- olink_boxplot(data, variable = "Media",
                 posthoc_results = anova_posthoc_results)
 
 plot_All
+
+anova_posthoc_results$Coded <- if_else(anova_posthoc_results$estimate > 0 & anova_posthoc_results$Threshold == "Significant", 1, 
+                               if_else(anova_posthoc_results$estimate < 0 & anova_posthoc_results$Threshold == "Significant", -1,0))
+
+Media_Analysis <- anova_posthoc_results[,c("Assay", "contrast", "Coded")]
+Media_Analysis <- pivot_wider(Media_Analysis, names_from = "contrast", values_from = "Coded")
+
+# T test and volcano plot of H vs L
+ttest_results <- olink_ttest(df = filter(data, data$Media != "LFLS"),
+                             variable = 'Media')
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'HFHS compared to MO',
+                   olinkid_list = top_10_name)
+
+# T test and volcano plot of H vs L
+ttest_results <- olink_ttest(df = filter(data, data$Media != "MO"),
+                             variable = 'Media')
+top_10_name <- ttest_results %>%
+  slice_head(n = 15) %>%
+  pull(OlinkID)
+olink_volcano_plot(p.val_tbl = ttest_results,
+                   x_lab = 'HFHS compared to LFLS',
+                   olinkid_list = top_10_name)
 
 
 ```

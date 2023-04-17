@@ -97,6 +97,6 @@ olink_volcano_plot(p.val_tbl = ttest_results,
                    olinkid_list = top_10_name)
 ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/NAFLD.png")
 
-NAFLD_Proteins <- pull(filter(ttest_results, ttest_results$Threshold == "Significant"), OlinkID)
+NAFLD_Proteins <- pull(filter(ttest_results, ttest_results$Adjusted_pval < 0.01), OlinkID)
 
 ```
