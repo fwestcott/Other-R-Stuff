@@ -48,13 +48,13 @@ data <- data[!data$Assay %in% assays_to_filter, ]
 
 #Load NAFLD Proteins (can also hash instead and get this straight from other R markdown)
 #All significant NAFLD proteins 
-NAFLD_Proteins_All <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517", "OID00486", "OID00561", "OID00483", "OID00542", "OID00538", "OID00510", "OID00534", "OID00560", "OID00511", "OID00512", "OID00480", "OID00499", "OID00535", "OID00558", "OID00533", "OID00491", "OID00551", "OID00507", "OID00531", "OID00536", "OID00554", "OID00523", "OID00494", "OID00485", "OID00487", "OID00501", "OID00479")
+#NAFLD_Proteins_All <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517", "OID00486", "OID00561", "OID00483", "OID00542", "OID00538", "OID00510", "OID00534", "OID00560", "OID00511", "OID00512", "OID00480", "OID00499", "OID00535", "OID00558", "OID00533", "OID00491", "OID00551", "OID00507", "OID00531", "OID00536", "OID00554", "OID00523", "OID00494", "OID00485", "OID00487", "OID00501", "OID00479")
 
 #NAFLD proteins where p < 0.01
-NAFLD_Proteins_Top <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517")
+#NAFLD_Proteins_Top <- c("OID00532", "OID00503", "OID00515", "OID00562", "OID00498", "OID00506", "OID00553", "OID00522", "OID00513", "OID00476", "OID00472", "OID00477", "OID00550", "OID00556", "OID05548", "OID00518", "OID00482", "OID00474", "OID00502", "OID00484", "OID00514", "OID00471", "OID00517")
 
 #Unhash if just want to use NAFLD proteins!!
-data <- data[data$OlinkID %in% NAFLD_Proteins_Top, ]
+#data <- data[data$OlinkID %in% NAFLD_Proteins_Top, ]
 
 #Split by cell type for future ease
 data_HO <- data[data$`Cell_Origin` == "HO",]
@@ -70,10 +70,14 @@ data %>%
   olink_pca_plot(df = .,
                  color_g = "Cell_Origin", byPanel = FALSE)
 
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig1.png")
+
 data %>% 
   filter(!str_detect(SampleID, 'CONTROL_SAMPLE')) %>% 
   olink_pca_plot(df = .,
                  color_g = "Media", byPanel = FALSE)
+
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig2.png")
 
 ```
 
@@ -91,12 +95,14 @@ anova_posthoc_results<-data_HO %>%
                       variable = 'Media',
                       effect = 'Media')
 
-plot_HO <- olink_boxplot(data_HO, variable = "Condition", 
+plot_HO <- olink_boxplot(data_HO, variable = "Media", 
                 olinkid_list = anova_results_oneway_significant,
-                number_of_proteins_per_plot  = 4,
+                number_of_proteins_per_plot  = 9,
                 posthoc_results = anova_posthoc_results)
 
-plot_HO
+plot_HO[[1]]
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig14.png")
+
 
 anova_results_twoway <- olink_anova(df = filter(data_HO, data_HO$Fat != "N"), 
                                     variable = c('Media', 'Fat'))
@@ -171,7 +177,7 @@ anova_posthoc_results<-data_H %>%
                       variable = 'Media',
                       effect = 'Media')
 
-plot_H <- olink_boxplot(data_H, variable = "Condition", 
+plot_H <- olink_boxplot(data_H, variable = "Media", 
                 olinkid_list = anova_results_oneway_significant,
                 number_of_proteins_per_plot  = 4,
                 posthoc_results = anova_posthoc_results)
@@ -259,10 +265,11 @@ anova_posthoc_results<- data %>%
 
 plot_All <- olink_boxplot(data, variable = "Cell_Origin", 
                 olinkid_list = anova_results_twoway_significant,
-                number_of_proteins_per_plot  = 5,
+                number_of_proteins_per_plot  = 9,
                 posthoc_results = anova_posthoc_results)
 
-plot_All
+plot_All[[1]]
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig3.png")
 
 anova_posthoc_results$Coded <- if_else(anova_posthoc_results$estimate > 0 & anova_posthoc_results$Threshold == "Significant", 1, 
                                if_else(anova_posthoc_results$estimate < 0 & anova_posthoc_results$Threshold == "Significant", -1,0))
@@ -283,21 +290,23 @@ Cell_Origin_Analysis$Coded <-
 ttest_results <- olink_ttest(df = filter(data, data$Cell_Origin != "L"),
                              variable = 'Cell_Origin')
 top_10_name <- ttest_results %>%
-  slice_head(n = 0) %>%
+  slice_head(n = 20) %>%
   pull(OlinkID)
 olink_volcano_plot(p.val_tbl = ttest_results,
-                   x_lab = 'Hepatocyte in Co-Culture compared to Monoculture',
-                   olinkid_list = top_10_name)
+                   x_lab = 'Hepatocyte in Co-Culture compared to Monoculture')
+
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig4.png")
 
 # T test and volcano plot of H vs L
 ttest_results <- olink_ttest(df = filter(data, data$Cell_Origin != "HO"),
                              variable = 'Cell_Origin')
 top_10_name <- ttest_results %>%
-  slice_head(n = 0) %>%
+  slice_head(n = 20) %>%
   pull(OlinkID)
 olink_volcano_plot(p.val_tbl = ttest_results,
-                   x_lab = 'Hepatocyte compared to Endothelial cell in Co-Culture',
-                   olinkid_list = top_10_name)
+                   x_lab = 'Hepatocyte compared to Endothelial cell in Co-Culture')
+
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig5.png")
 
 ```
 
@@ -317,10 +326,12 @@ anova_posthoc_results<- data %>%
 
 plot_All <- olink_boxplot(data, variable = "Media", 
                 olinkid_list = anova_results_twoway_significant,
-                number_of_proteins_per_plot  = 4,
+                number_of_proteins_per_plot  = 9,
                 posthoc_results = anova_posthoc_results)
 
-plot_All
+plot_All [[1]]
+
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig6.png")
 
 anova_posthoc_results$Coded <- if_else(anova_posthoc_results$estimate > 0 & anova_posthoc_results$Threshold == "Significant", 1, 
                                if_else(anova_posthoc_results$estimate < 0 & anova_posthoc_results$Threshold == "Significant", -1,0))
@@ -335,8 +346,9 @@ top_10_name <- ttest_results %>%
   slice_head(n = 15) %>%
   pull(OlinkID)
 olink_volcano_plot(p.val_tbl = ttest_results,
-                   x_lab = 'HFHS compared to MO',
-                   olinkid_list = top_10_name)
+                   x_lab = 'HFHS compared to MO')
+
+#ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig8.png")
 
 # T test and volcano plot of H vs L
 ttest_results <- olink_ttest(df = filter(data, data$Media != "MO"),
@@ -345,13 +357,17 @@ top_10_name <- ttest_results %>%
   slice_head(n = 15) %>%
   pull(OlinkID)
 olink_volcano_plot(p.val_tbl = ttest_results,
-                   x_lab = 'HFHS compared to LFLS',
-                   olinkid_list = top_10_name)
+                   x_lab = 'HFHS compared to LFLS')
+
+#ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig9.png")
 
 
 ```
 
 ```{R, Media:Cell_Origin interactions}
+
+data$Media_Cell <- paste(data$Media, data$Cell_Origin)
+
 #Two way ANOVA on all H vs HO for Media:Cell_Origin interaction
 anova_results_twoway_HvHO <- olink_anova(df = filter(data, data$Cell_Origin != "L"), 
                                     variable = c('Media', 'Cell_Origin'))
@@ -364,11 +380,17 @@ anova_results_twoway_significant <- anova_results_twoway_HvHO %>%
   pull(OlinkID) %>%
   unique()
 
-plot_All <- olink_boxplot(filter(data, data$Cell_Origin != "L"), variable = "Sample_Type", 
+plot_All <- olink_boxplot(filter(data, data$Cell_Origin != "L"), variable = "Media_Cell", 
                 olinkid_list = anova_results_twoway_significant,
-                number_of_proteins_per_plot  = 4)
+                number_of_proteins_per_plot  = 9)
 
-plot_All
+plot_All[[1]]
+
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig10.png")
+
+plot_All[[2]]
+
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig11.png")
 
 
 #Two way ANOVA on all H vs HO for Media:Cell_Origin interaction
@@ -383,11 +405,19 @@ anova_results_twoway_significant <- anova_results_twoway_HvL %>%
   pull(OlinkID) %>%
   unique()
 
-plot_All <- olink_boxplot(filter(data, data$Cell_Origin != "HO"), variable = "Sample_Type", 
+anova_posthoc_results<- filter(data, data$Cell_Origin != "HO") %>% 
+  olink_anova_posthoc(olinkid_list = anova_results_twoway_significant,
+                      variable = 'Cell_Origin',
+                      effect = 'Cell_Origin',
+                      covariates = "Media")
+
+plot_All <- olink_boxplot(filter(data, data$Cell_Origin != "HO"), variable = "Media_Cell", 
                 olinkid_list = anova_results_twoway_significant,
-                number_of_proteins_per_plot  = 4)
+                number_of_proteins_per_plot  = 9)
 
 plot_All
+
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig12.png")
 
 ```
 
@@ -416,6 +446,8 @@ plot_All <- olink_boxplot(filter(data, data$Fat != "N"), variable = "Fat",
                 posthoc_results = anova_posthoc_results)
 
 plot_All
+
+ggsave("C:/Users/fwestcott/OneDrive - Nexus365/Desktop/Other Stuff/Other-R-Stuff/Figures/Fig13.png")
 
 # perform t-test
 ttest_results <- olink_ttest(df = filter(data, data$Fat != "N"),
